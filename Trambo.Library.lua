@@ -1,6 +1,6 @@
 -- Trambo.Library
 -- Author="TRAMBO"
--- Version="1.0"
+-- Version="1.2"
 
 include("karaskel.lua") -- karaskel.lua written by Niels Martin Hansen and Rodrigo Braz Monteiro
 
@@ -239,7 +239,8 @@ function get_raw_v2(str,choice)
   return t, p
 end
 
-function getToken(str,choice, block)
+function getToken(str,choice,block) 
+  -- must replace \\N with *N;
   local t = {}--token
   local p = {} --token position
   local tchar = {} --char table
@@ -247,12 +248,19 @@ function getToken(str,choice, block)
   for c, i in unicode.chars(str) do
     table.insert(tchar, c)
   end
-
+  for i=1,#tchar-2,1 do
+    if tchar[i] == "*" and tchar[i+1] == "N" and tchar[i+2] == ";" then
+      tchar[i] = "*N;"
+      table.remove(tchar,i+1)
+      table.remove(tchar,i+1)
+    end
+  end
+  
   local count = 0
   local n = 1
   local temp = ""
 
-  if choice == 1 then --WORD
+  if choice == word then
     if block == false then
       while n <= #tchar do 
         if tchar[n] == "{" then
@@ -265,7 +273,7 @@ function getToken(str,choice, block)
           temp = ""
           count = count + 1
           n = n + 1
-        elseif tchar[n] == " " or tchar[n] == "*" then
+        elseif tchar[n] == " " or tchar[n] == "*N;" then
           table.insert(t,tchar[n])
           count = count + 1
           table.insert(p,count)
@@ -273,7 +281,7 @@ function getToken(str,choice, block)
         else       
           temp = temp .. tchar[n]
           n = n + 1
-          if tchar[n] == "{" or tchar[n] == " " or tchar[n] == "*" or tchar[n] == nil then
+          if tchar[n] == "{" or tchar[n] == " " or tchar[n] == "*N;" or tchar[n] == nil then
             table.insert(t,temp)
             temp = ""
             count = count + 1
@@ -283,7 +291,7 @@ function getToken(str,choice, block)
       end
     else
       while n <= #tchar do 
-        if tchar[n] == " " or tchar[n] == "*" then
+        if tchar[n] == " " or tchar[n] == "*N;" then
           table.insert(t,tchar[n])
           count = count + 1
           table.insert(p,count)
@@ -296,9 +304,9 @@ function getToken(str,choice, block)
           if tchar[n] == "}" then
             temp = temp .. tchar[n]
             local m = n + 1
-            if tchar[m] == " " or tchar[m] == "*" then
+            if tchar[m] == " " or tchar[m] == "*N;" then
               n = n + 1
-              while tchar[n] == " " or tchar[n] == "*" do
+              while tchar[n] == " " or tchar[n] == "*N;" do
                 temp = temp .. tchar[n]
                 n = n + 1
               end
@@ -306,10 +314,10 @@ function getToken(str,choice, block)
               n = n + 1
             end
           end
-          while tchar[n] ~= " " and tchar[n] ~= "{" and tchar[n] ~= "*" and tchar[n] ~= nil do
+          while tchar[n] ~= " " and tchar[n] ~= "{" and tchar[n] ~= "*N;" and tchar[n] ~= nil do
             temp = temp .. tchar[n]
             n = n + 1
-            if tchar[n] == " " or tchar[n] == "{" or tchar[n] == "*" or tchar[n] == nil then
+            if tchar[n] == " " or tchar[n] == "{" or tchar[n] == "*N;" or tchar[n] == nil then
               table.insert(t,temp)
               temp = ""
               count = count + 1
@@ -317,10 +325,10 @@ function getToken(str,choice, block)
             end
           end
         else
-          while tchar[n] ~= " " and tchar[n] ~= "{" and tchar[n] ~= "*" and tchar[n] ~= nil do
+          while tchar[n] ~= " " and tchar[n] ~= "{" and tchar[n] ~= "*N;" and tchar[n] ~= nil do
             temp = temp .. tchar[n]
             n = n + 1
-            if tchar[n] == " " or tchar[n] == "{" or tchar[n] == "*" or tchar[n] == nil then
+            if tchar[n] == " " or tchar[n] == "{" or tchar[n] == "*N;" or tchar[n] == nil then
               table.insert(t,temp)
               temp = ""
               count = count + 1
@@ -331,7 +339,7 @@ function getToken(str,choice, block)
       end 
     end 
 
-  elseif choice == 0 then -- CHAR
+  else -- CHAR
     if block == false then
       t = tchar
       while n <= #tchar do 
@@ -355,21 +363,23 @@ function getToken(str,choice, block)
           if tchar[n] == "}" then
             temp = temp .. tchar[n]
             local m = n + 1
-            if tchar[m] == " " or tchar[m] == "*" then
+            if tchar[m] == " " or tchar[m] == "*N;" then
               n = n + 1
-              while tchar[n] == " " or tchar[n] == "*" do
+              while tchar[n] == " " or tchar[n] == "*N;" do
                 temp = temp .. tchar[n]
                 n = n + 1
               end
             else
               n = n + 1
             end
-            temp = temp .. tchar[n]
-            table.insert(t, temp)
-            temp = ""
-            count = count + 1
-            table.insert(p, count)
-            n = n + 1
+            if tchar[n]~=nil then 
+              temp = temp .. tchar[n]
+              table.insert(t, temp)
+              temp = ""
+              count = count + 1
+              table.insert(p, count)
+              n = n + 1
+            end
           end
         else
           table.insert(t, tchar[n])
@@ -452,4 +462,95 @@ function shuffle(table)
     local j = math.random(i)
     table[i], table[j] = table[j], table[i]
   end
+end
+
+function get_org_ltext(line)
+  local orgline
+  if line.text:find("{ol;.-}") then
+    orgline = line.text:match("{ol;.-}")
+  else
+    orgline = "{ol;" .. line.text:gsub("{","h;"):gsub("}","t;"):gsub("\\","sl;") .. "}"
+  end
+  return orgline
+end
+
+function reset_ltext(line)
+  if line.text:find("{ol;.-}") then
+    line.text = line.text:match("{ol;(.-)}"):gsub("h;","{"):gsub("t;","}"):gsub("sl;","\\")
+  end
+  return line.text
+end
+
+function valid_file(path)
+  local f = io.open(path,"r")
+  if f ~= nil then 
+    io.close(f) 
+    return true 
+  else 
+    return false 
+  end
+end
+
+function get_presetPath(file, dpath)
+  local f = io.open(file,"r+")
+  local l = f:read()
+  if l == nil then
+    f:write(dpath)
+    return dpath
+  else
+    if not valid_file(l) then
+      return dpath
+    else
+      return l
+    end
+
+  end
+  f:close()
+end
+
+function getPreset(path,dpath,namePattern)
+  local list = {}
+  local f
+  if not valid_file(path) then
+    path = dpath
+  end
+  f = io.open(path,"r")
+  for line in f:lines() do
+    table.insert(list,line:match(namePat))
+  end
+  f:close()
+  return list
+end
+
+function removePreset(p,path,namePattern)
+  local f = io.open(path,"r")
+  local list = {}
+  for line in f:lines() do
+    if line:match(namePattern) ~= p then
+      table.insert(list,line)
+    end
+  end
+  f:close()
+  f = io.open(path,"w")
+  for i=1,#list,1 do
+    f:write(list[i] .. "\n")
+  end
+  f:close()
+end
+
+function renamePreset(cur,new,path,namePattern)
+  local f = io.open(path,"r")
+  local list={}
+  for line in f:lines() do
+    if line:match(namePattern) == cur then
+      line = line:gsub(cur, new, 1)
+    end
+    table.insert(list,line)
+  end
+  f:close()
+  f = io.open(path,"w")
+  for i=1,#list,1 do
+    f:write(list[i] .. "\n")
+  end
+  f:close()
 end
