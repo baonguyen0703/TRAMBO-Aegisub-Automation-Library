@@ -1,6 +1,6 @@
 -- Trambo.Library
 -- Author="TRAMBO"
--- Version="1.3"
+-- Version="1.4" updated 10/26/21
 
 include("karaskel.lua") -- karaskel.lua written by Niels Martin Hansen and Rodrigo Braz Monteiro
 
@@ -216,7 +216,38 @@ function get_raw_v2(str,choice)
         end
       end
 
-    end  
+  end
+  
+  elseif choice == 2 then --WORD NO SPACE
+    local tchar = {} -- full str
+    for c, i in unicode.chars(str) do
+      table.insert(tchar, c)
+    end
+
+    local count = 0
+    local n = 1
+    local temp = ""
+    while n <= #tchar do 
+      if tchar[n] == "{" then
+        while tchar[n] ~= "}" do
+          n = n + 1
+        end
+        temp = temp .. "}"
+        n = n + 1
+      elseif tchar[n] == " " or tchar[n] == "*" then
+        n = n + 1
+      else       
+        temp = temp .. tchar[n]
+        n = n + 1
+        if tchar[n] == "{" or tchar[n] == " " or tchar[n] == "*" or tchar[n] == nil then
+          table.insert(t,temp)
+          temp = ""
+          count = count + 1
+          table.insert(p,count)
+        end
+      end
+
+    end
   elseif choice == 0 then --CHAR
     for c, i in unicode.chars(str) do
       table.insert(t, c)
@@ -255,7 +286,7 @@ function getToken(str,choice,block)
       table.remove(tchar,i+1)
     end
   end
-  
+
   local count = 0
   local n = 1
   local temp = ""
@@ -453,7 +484,7 @@ end
 
 --draw mask for image/logo
 function drawRect(w,h)
-return string.format("m 0 0 l %s 0 %s %s 0 %s", w, w, h, h)
+  return string.format("m 0 0 l %s 0 %s %s 0 %s", w, w, h, h)
 end
 
 --getImgSize function modified and shortened from Get Image Size by: MikuAuahDark
@@ -620,4 +651,18 @@ function add_img_to_line(line, path, x, y, mode)
     end
   end
   return line
+end
+
+
+function point_between(x1,y1,x2,y2,t) --t=0->1
+  x = x1 + t*(x2-x1)
+  y = y1 + t*(y2-y1)
+  return x,y
+end
+
+function rotatedPoint(x1,y1,xcent,ycent,angle) --(x1,y1) rotate about xcent,ycent
+  r = math.rad(angle)
+  x = (x1-xcent)*math.cos(r) - (y1-ycent)*math.sin(r) + xcent
+  y = (x1-xcent)*math.sin(r) + (y1-ycent)*math.cos(r) + ycent
+  return x,y
 end
