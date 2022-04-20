@@ -1,6 +1,6 @@
 -- Trambo.Library
 -- Author="TRAMBO"
--- Version="1.2"
+-- Version="1.3"
 
 include("karaskel.lua") -- karaskel.lua written by Niels Martin Hansen and Rodrigo Braz Monteiro
 
@@ -456,6 +456,29 @@ function drawRect(w,h)
 return string.format("m 0 0 l %s 0 %s %s 0 %s", w, w, h, h)
 end
 
+--getImgSize function modified and shortened from Get Image Size by: MikuAuahDark
+function getImgSize(file)
+
+  file = assert(io.open(file))
+
+  local width,height=0,0
+  file:seek("set",1)
+  -- Detect if PNG
+  if file:read()=="PNG" then
+    file:seek("set",16)
+    local widthstr,heightstr=file:read(4),file:read(4)
+
+    file:close()
+
+    width=widthstr:sub(1,1):byte()*16777216+widthstr:sub(2,2):byte()*65536+widthstr:sub(3,3):byte()*256+widthstr:sub(4,4):byte()
+    height=heightstr:sub(1,1):byte()*16777216+heightstr:sub(2,2):byte()*65536+heightstr:sub(3,3):byte()*256+heightstr:sub(4,4):byte()
+    return width,height
+  end
+
+  file:seek("set")
+  refresh()
+end
+
 function shuffle(table)
   math.randomseed(os.time())
   for i = #table, 2, -1 do
@@ -553,4 +576,48 @@ function renamePreset(cur,new,path,namePattern)
     f:write(list[i] .. "\n")
   end
   f:close()
+end
+
+function add_fimg_to_line(line, path, x, y,drawing)
+  path = ass_path(path)
+  local pos = ""
+  if string.find(line.text,"\\pos%(") ~= nil then
+    pos = string.match(line.text,"(\\pos.-%))")
+  end
+  line.text = "{\\an5\\bord0\\shad0\\p1\\1img(" .. path .. "," .. x .. "," .. y .. ")" .. pos .. "} ".. drawing
+  return line
+end
+
+function add_img_to_line(line, path, x, y, mode)
+  if mode == 0 then --logo
+    local w, h = getImgSize(path)
+    local drawing = draw(w,h)
+    path = ass_path(path)
+
+    local n = 0
+    local pos = ""
+    if string.find(line.text,"\\pos%(") ~= nil then
+      pos = string.match(line.text,"(\\pos.-%))")
+    end
+    line.text = "{\\an5\\bord0\\shad0\\p1\\1img(" .. path .. "," .. x .. "," .. y .. ")" .. pos .. "} ".. drawing
+  else -- mode = 1,2,3,4
+    path = ass_path(path)
+    tostring(mode)
+    local add = "\\" .. mode .. "img(" .. path .. "," .. x .. "," .. y .. ")"
+    if string.match(line.text, '{.*}') == nil or line.text == nil then
+      line.text = "{" .. add .. "}" .. line.text
+    else   
+      if string.find(line.text,mode .. "img") == nil then 
+        local tags = string.match(line.text, '{(.-)}')
+        local new_tags = "{" .. add .. tags .. "}"
+        line.text = string.gsub(line.text, "{(.-)}", new_tags,1)
+      else
+        subpath = "\\" .. mode .. "img(.-%))"
+        if string.find(line.text, '\\p%d') == nil then
+          line.text = string.gsub(line.text, subpath, add)
+        end
+      end
+    end
+  end
+  return line
 end
