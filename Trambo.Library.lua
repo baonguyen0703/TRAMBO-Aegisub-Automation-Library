@@ -1,9 +1,10 @@
 -- Trambo.Library
 -- Author="TRAMBO"
--- Version="1.4" updated 10/26/21
+-- Version="1.5" updated on 220709
 
 include("karaskel.lua") -- karaskel.lua written by Niels Martin Hansen and Rodrigo Braz Monteiro
 
+trambo = aegisub.decode_path("?user") .. "\\Trambo"
 
 function remove_accents_v1(text)
   local aList = "áảàãạâấầẩậẫăắằẳẵặāǎ"
@@ -592,6 +593,21 @@ function removePreset(p,path,namePattern)
   f:close()
 end
 
+--***Function Template*** 
+function updatePreset(p--[[param_list]])
+  msg = [[Are you sure you want to update Preset "]] .. p .. [[" ?]]
+  local updatePreset_GUI = {
+        { class = "label", x=0, y=0, width=2, height=1, label=msg}
+      }
+      local updatePreset_buttons = {"YES","NO"}
+      updatePreset_choice,updatePreset_res = aegisub.dialog.display(updatePreset_GUI,updatePreset_buttons)
+      if updatePreset_choice == "YES" then
+        --removePreset(p,path,namePattern)
+        --savePreset <- implement in script
+        --loadPreset <- implement in script, optional
+      end
+end
+
 function renamePreset(cur,new,path,namePattern)
   local f = io.open(path,"r")
   local list={}
@@ -665,4 +681,28 @@ function rotatedPoint(x1,y1,xcent,ycent,angle) --(x1,y1) rotate about xcent,ycen
   x = (x1-xcent)*math.cos(r) - (y1-ycent)*math.sin(r) + xcent
   y = (x1-xcent)*math.sin(r) + (y1-ycent)*math.cos(r) + ycent
   return x,y
+end
+
+function getBezierPoint(x1,y1,x2,y2,x3,y3,x4,y4,t)
+  xt = ((1-t)^3)*x1 + 3*((1-t)^2)*t*x2 + 3*(1-t)*(t^2)*x3 + (t^3)*x4 
+  yt = ((1-t)^3)*y1 + 3*((1-t)^2)*t*y2 + 3*(1-t)*(t^2)*y3 + (t^3)*y4
+  return xt,yt
+end
+
+function found(file)
+  local res, err, code = os.rename(file, file)
+  return res
+end
+
+function check_required_files(list_of_files)
+  if not found(trambo) then
+    os.execute("mkdir -p " .. trambo)
+  end
+  
+  for i,file in ipairs(list_of_files) do
+    if not found(file) then 
+      local f = io.open(file, "w")
+      f:close()
+    end
+  end 
 end
