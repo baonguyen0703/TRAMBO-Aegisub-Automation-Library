@@ -1,6 +1,6 @@
 -- Trambo.Library
 -- Author="TRAMBO"
--- Version="1.5.1" updated on 230108 not released
+-- Version="1.5.1" updated on 230108
 
 include("karaskel.lua") -- karaskel.lua written by Niels Martin Hansen and Rodrigo Braz Monteiro
 
